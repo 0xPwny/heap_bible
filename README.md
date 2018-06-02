@@ -27,7 +27,7 @@ It is the chunk which borders the top of an arena. While servicing malloc reques
 ## Unlink Protection: 
 At present day, unlink technique doesnt work since ‘glibc malloc’ has got hardened over the years. Below checks are added to prevent heap overflow using unlink technique.
 
-*Double free:* Freeing a chunk which is already in free state is prohibited. When attacker overwrites ‘second’ chunk’s size with -4, its PREV_INUSE bit is unset which means ‘first’ is already in free state. Hence ‘glibc malloc’ throws up double free error.
+**Double free:** Freeing a chunk which is already in free state is prohibited. When attacker overwrites ‘second’ chunk’s size with -4, its PREV_INUSE bit is unset which means ‘first’ is already in free state. Hence ‘glibc malloc’ throws up double free error.
 
 ```
    if (__glibc_unlikely (!prev_inuse(nextchunk)))
@@ -36,3 +36,23 @@ At present day, unlink technique doesnt work since ‘glibc malloc’ has got ha
         goto errout;
       }
 ```
+
+**Invalid next size:** Next chunk size should lie between 8 bytes to arena’s total system memory. When attacker overwrites ‘second’ chunk’s size with -4, ‘glibc malloc’ throws up invalid next size error.
+
+```
+if (__builtin_expect (nextchunk->size <= 2 * SIZE_SZ, 0)
+        || __builtin_expect (nextsize >= av->system_mem, 0))
+      {
+        errstr = "free(): invalid next size (normal)";
+        goto errout;
+      }
+```
+
+**Courrupted Double Linked list:** Previous chunk’s fd and next chunk’s bk should point to currently unlinked chunk. When attacker overwrites fd and bk with free -12 and shellcode address, respectively, free and shellcode address + 8 doesnt point to currently unlinked chunk (‘second’). Hence ‘glibc malloc’ throws up corrupted double linked list error.
+
+
+```
+if (__builtin_expect (FD->bk != P || BK->fd != P, 0))                     
+      malloc_printerr (check_action, "corrupted double-linked list", P);
+```
+
