@@ -22,3 +22,17 @@ There is only 1 unsorted bin. Small and large chunks, when freed, end up in this
 ##  Top Chunk 
 
 It is the chunk which borders the top of an arena. While servicing malloc requests, it is used as the last resort.
+
+
+## Unlink Protection: 
+At present day, unlink technique doesnt work since ‘glibc malloc’ has got hardened over the years. Below checks are added to prevent heap overflow using unlink technique.
+
+*Double free:* Freeing a chunk which is already in free state is prohibited. When attacker overwrites ‘second’ chunk’s size with -4, its PREV_INUSE bit is unset which means ‘first’ is already in free state. Hence ‘glibc malloc’ throws up double free error.
+
+```
+   if (__glibc_unlikely (!prev_inuse(nextchunk)))
+      {
+        errstr = "double free or corruption (!prev)";
+        goto errout;
+      }
+```
