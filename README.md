@@ -1,4 +1,4 @@
-# heap_bible
+# Heap_Bible
 ## HEAP  (Notes / Techniques / Exploitation / Writeups)
 
 # Heap Bins
