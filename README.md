@@ -87,3 +87,49 @@ public_fREe(Void_t* mem)
 
   _int_free(ar_ptr, mem);
 ```
+```
+void
+_int_free(mstate av, Void_t* mem)
+{
+  mchunkptr       p;           /* chunk corresponding to mem */
+  INTERNAL_SIZE_T size;        /* its size */
+  mfastbinptr*    fb;          /* associated fastbin */
+
+  [...]
+
+  p = mem2chunk(mem);
+  size = chunksize(p);
+
+  [...]
+
+  /*
+    If eligible, place chunk on a fastbin so it can be found
+    and used quickly in malloc.
+  */
+
+  if ((unsigned long)(size) <= (unsigned long)(av->max_fast)
+
+#if TRIM_FASTBINS
+      /*
+	If TRIM_FASTBINS set, don't place chunks
+	bordering top into fastbins
+      */
+      && (chunk_at_offset(p, size) != av->top)
+#endif
+      ) {
+
+    if (__builtin_expect (chunk_at_offset (p, size)->size <= 2 * SIZE_SZ, 0)
+	|| __builtin_expect (chunksize (chunk_at_offset (p, size))
+			     >= av->system_mem, 0))
+      {
+	errstr = "free(): invalid next size (fast)";
+	goto errout;
+      }
+
+    [...]
+    fb = &(av->fastbins[fastbin_index(size)]);
+    [...]
+    p->fd = *fb;
+    *fb = p;
+  }
+```
