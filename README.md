@@ -56,3 +56,34 @@ if (__builtin_expect (FD->bk != P || BK->fd != P, 0))
       malloc_printerr (check_action, "corrupted double-linked list", P);
 ```
 
+# House OF Spirit
+
+**security checks** : this attack demand setting the size and next chunk's size to be in the same range (preferably a fastbin)
+
+*code :*
+
+```
+void
+public_fREe(Void_t* mem)
+{
+  mstate ar_ptr;
+  mchunkptr p;                          /* chunk corresponding to mem */
+
+  [...]
+
+  p = mem2chunk(mem);
+
+#if HAVE_MMAP
+  if (chunk_is_mmapped(p))                       /* release mmapped memory. */
+  {
+    munmap_chunk(p);
+    return;
+  }
+#endif
+
+  ar_ptr = arena_for_chunk(p);
+
+  [...]
+
+  _int_free(ar_ptr, mem);
+```
